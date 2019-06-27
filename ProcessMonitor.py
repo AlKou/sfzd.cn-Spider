@@ -6,50 +6,16 @@ Created on Wed Jun 24 16:47:36 2019
 @author: Al_gou
 """
 
-import psutil
 import time
+import subprocess as sp
 import os
 import signal
+import psutil
 
-def getPrcs():
-    # Get all PIDS and select out python processes.
-    
-    
-    all_pids = psutil.pids()
-    prcs = {}
-    for p in all_pids:
-        prcs[p] = psutil.Process(p).name()
-    pyprc = []
-    for k, v in prcs.items():  
-        if v == 'python3.6':
-            pyprc.append(k)
-    return pyprc
-
-
-def startPrc():
-    # Start the spider and print the process PID
-    
-    import subprocess as sub
-    
-    prc = sub.Popen('scrapy crawl chr',
-                cwd='/Users/Al_gou/Desktop/ChineseChr/', 
-                shell=True)
-    print('Process PID: {}\nSpider crawling...\n'.format(prc.pid))
-
-    
-def killPrc(pre, aft):
-    # Kill newly started processes by compare the  processes sets at two times
-    
-    
-    for prc in aft:
-        if prc not in pre:
-            os.kill(int(prc), signal.SIGKILL)
-            
 def checkChr():
-    # Check if new files are being scraped and downloaded to the distination 
-    # folder and return values accordingly
-    # Time interval is 2 minutes
-    
+    # Check if new files are being scraped and downloaded to the destination folder and return values accordingly.
+    # Time interval is 2 minutes.
+        
     b_len = len(os.listdir('/Users/Al_gou/Desktop/Scraped/Pics/'))
     time.sleep(120)
     a_len = len(os.listdir('/Users/Al_gou/Desktop/Scraped/Pics/'))
@@ -61,27 +27,29 @@ def checkChr():
     
 def monitorChr():
     
-    # Monitor the spider. When finding it adding no more files to folder, 
-    # kill the process and restart a new one.
-        
+    # Monitor the spider. When finding it adding no more files to folder, kill the process and restart a new one.
+    
     with open('/Users/Al_gou/Desktop/Scraped/ChineseChar 3.5K.txt', 'r') as f:
         data = f.read()
 
     while data != '':
-        pre = getPrcs()  # Get the python processes running before starting 
-                         # the spider
-        startPrc()       # Start the spider
-        time.sleep(600)  # Let the spider crawling for 10 minutes
-        aft = getPrcs()  # Get the python processes running now
+        # Start the spider.
+        spd = sp.Popen('scrapy crawl chr', 
+                        cwd='/Users/Al_gou/Desktop/ChineseChr/',
+                        shell=True) 
+        print('@ {} Process {} {} started.'.format(time.ctime(), spd.pid, psutil.Process(spd.pid).name()))
+        print('@ {} Spider crawling...'.format(time.ctime()))
 
-        while checkChr():# While files being added continueously, keep 
-                         # checking if more are being added
-            checkChr()        
-        else:            # If not, kill the process, restart the monitoring
-            killPrc(pre, aft)
-            print('Spider killed. Restarting...\n')
+        # While files being added continueously, keep checking if more are being added.
+        while checkChr():           
+            checkChr() 
+        # If not, kill the process, restart the monitoring.    
+        else:                       
+            os.kill(spd.pid, signal.SIGKILL)
+            print('@ {} Spider killed. Restarting...\n'.format(time.ctime()))
             monitorChr()
             break
+
 
 if __name__ == '__main__':
     monitorChr()
